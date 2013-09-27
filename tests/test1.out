@@ -1,0 +1,32 @@
+#
+# This is the output of parsing test1.log file
+#
+
+$ python
+Python 2.7.5 (default, Aug 22 2013, 09:31:58) 
+[GCC 4.8.1 20130603 (Red Hat 4.8.1-1)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import LogParser
+>>> mailLog = LogParser.ZimbraMailLog()
+>>> mailLog.parseLog(open('tests/test1.log'))
+>>> mailLog.consolidateMessagesByMessageID()
+>>> mailLog.dumpLogsByQueueID("40E60321BA3")
+[MESSAGEID <823AF$20130922$03572400@SAS>][QUEUEID 40E60321BA3] from=fax@example.hr -> [('nsurname@example.hr', None)]
+>>> 
+
+#
+# Note the output, it says that there was a message with a given message ID and
+# requested Queue DI. This message was sent from fax@example.hr and it wad
+# delivered directly to 'nsurname@example.hr'.
+#
+# The None value of the pair is used when there was some kind of a forwarding.
+# For example, when the mail was sent to a distribution list than this second
+# argument will be address of the distribution list, while the first address
+# will be member's address.
+#
+# Also, when alias is used, then the second argument is alias.
+#
+# Finally, if the user has forwardig setup, than the None part will be the
+# original user, while the first will be the user that actually got the
+# message.
+#

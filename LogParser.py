@@ -4,6 +4,7 @@ import sys
 import re
 from datetime import datetime, date
 import lzma
+import gzip
 
 ################################################################################
 # Common regular expressions
@@ -753,7 +754,7 @@ class MailMessage:
 	INIT			= "INIT"
 	QUEUEID_IDENTIFIED	= "QUEUEID_IDENTIFIED"
 	MESSAGEID_IDENTIFIED	= "MESSAGEID_IDENTIFIED"
-	MSGDONE			= "MSGDONE"
+	MSG_SUCCESS		= "MSG_SUCCESS"
 	MILTERREJECT		= "MILTERREJECT"
 
 	def __init__(self, source=None, queueid=None, from_to=[],
@@ -786,6 +787,18 @@ class MailMessage:
 	def getMessageID(self):
 		if self.message.has_key("messageid"):
 			return self.message["messageid"]
+
+		return ""
+
+	def getQueueID(self):
+		if self.message.has_key("queueid"):
+			return self.message["queueid"]
+
+		return ""
+
+	def getMailFrom(self):
+		if self.message.has_key("mail_from"):
+			return self.message["mail_from"]
 
 		return ""
 
@@ -916,7 +929,7 @@ class MailMessage:
 
 			elif logRecord["regex"]["name"] == "message_removed":
 
-				self.state = self.MSGDONE
+				self.state = self.MSG_SUCCESS
 				return CMD_MESSAGEDONE, None
 
 			elif logRecord["regex"]["name"] == "cleanup_milter_reject":
@@ -1220,25 +1233,25 @@ class ZimbraMailLog():
 				raise UnexpectedEventLogParserException("LINE({}): {}".format(lineCounter, line))
 
 			# Create dictionary from "fields" data
-			parsed_record = {}
-			parsed_record["regex"] = regex
+			parsed_message = {}
+			parsed_message["regex"] = regex
 			for k,v in zip(regex["fields"], xrange(len(regex["fields"]))):
 
 				# Special processing for timestamp
 				if k == "timestamp":
-					parsed_record["timestamp"] = datetime.strptime(res.group(v), "%b %d %H:%M:%S").replace(logYear)
+					parsed_message["timestamp"] = datetime.strptime(res.group(v), "%b %d %H:%M:%S").replace(logYear)
 				else:
-					if len(k): parsed_record[k] = res.group(v)
+					if len(k): parsed_message[k] = res.group(v)
 
 			if regex["smid"] == "POSTFIX":
 
-				pid = parsed_record["PID"]
+				pid = parsed_message["PID"]
 				if not self.stateProcessPID.has_key(pid):
 					self.stateProcessPID[pid] = PostfixProcess(pid)
-				cmd, arg = self.stateProcessPID[pid].process(parsed_record)
+				cmd, arg = self.stateProcessPID[pid].process(parsed_message)
 
 				if cmd == CMD_ADDMSG:
-					self.mailMessagesByQueueID[parsed_record["queueid"]] = arg
+					self.mailMessagesByQueueID[parsed_message["queueid"]] = arg
 				elif cmd == CMD_DELPID:
 					del self.stateProcessPID[pid]
 				elif cmd is not None:
@@ -1246,14 +1259,14 @@ class ZimbraMailLog():
 
 			elif regex["smid"] == "DKIMMILTER":
 
-				pid = parsed_record["PID"]
+				pid = parsed_message["PID"]
 				if not self.stateProcessPID.has_key(pid):
 					self.stateProcessPID[pid] = DKIMMilterProcess(pid)
 
-				cmd, arg = self.stateProcessPID[pid].process(parsed_record)
+				cmd, arg = self.stateProcessPID[pid].process(parsed_message)
 
 				if cmd == CMD_ADDMSG:
-					self.mailMessagesByQueueID[parsed_record["queueid"]] = arg
+					self.mailMessagesByQueueID[parsed_message["queueid"]] = arg
 				elif cmd == CMD_DELPID:
 					del self.stateProcessPID[pid]
 				elif cmd is not None:
@@ -1261,13 +1274,13 @@ class ZimbraMailLog():
 
 			elif regex["smid"] == "AMAVISD":
 
-				pid = parsed_record["PID"]
+				pid = parsed_message["PID"]
 				if not self.stateProcessPID.has_key(pid):
 					self.stateProcessPID[pid] = AmavisdProcess(pid)
-				cmd, arg = self.stateProcessPID[pid].process(parsed_record)
+				cmd, arg = self.stateProcessPID[pid].process(parsed_message)
 
 				if cmd == CMD_ADDMSG:
-					self.mailMessagesByQueueID[parsed_record["queueid"]] = arg
+					self.mailMessagesByQueueID[parsed_message["queueid"]] = arg
 				elif cmd == CMD_DELPID:
 					del self.stateProcessPID[pid]
 				elif cmd is not None:
@@ -1275,7 +1288,7 @@ class ZimbraMailLog():
 
 			elif regex["smid"] == "queueid":
 
-				queueid = parsed_record["queueid"]
+				queueid = parsed_message["queueid"]
 				if not self.mailMessagesByQueueID.has_key(queueid):
 
 					if regex["name"] == "messageid_identified":
@@ -1305,14 +1318,12 @@ class ZimbraMailLog():
 					# So to take into account that case, we first check that message id
 					# is different (safegard), then we "retire" the old message, and we
 					# instatiate a new message.
+					oldmsgid = self.mailMessagesByQueueID[queueid].getMessageID()
+					if oldmsgid != "" and oldmsgid != parsed_message["messageid"]:
+						self.processedMessages.append(self.mailMessagesByQueueID[queueid])
+						self.mailMessagesByQueueID[queueid] = MailMessage(INTERNAL, queueid)
 
-					if parsed_record["messageid"] == self.mailMessagesByQueueID[queueid].getMessageID():
-						raise UnexpectedEventLogParserException("Unhandled queueid: {}".format(queueid))
-
-					self.processedMessages.append(self.mailMessagesByQueueID[queueid])
-					self.mailMessagesByQueueID[queueid] = MailMessage(INTERNAL, queueid)
-
-				cmd, arg = self.mailMessagesByQueueID[queueid].process(parsed_record)
+				cmd, arg = self.mailMessagesByQueueID[queueid].process(parsed_message)
 
 				if cmd == CMD_MESSAGEDONE:
 					self.processedMessages.append(self.mailMessagesByQueueID[queueid])
@@ -1325,7 +1336,8 @@ class ZimbraMailLog():
 		"""
 		The purpose of this method is to generate a list of messages that
 		are originating ones, i.e. they came from the outside of the
-		system. The consolidation is done using message ID.
+		system. The consolidation is done using message ID as it is the
+		most reliable way to determine messages.
 		"""
 
 		self.messagesByMessageID = {}
@@ -1337,23 +1349,48 @@ class ZimbraMailLog():
 
 			self.messagesByMessageID[msgid].append(msg)
 
-	def dumpMessages(self):
+	def dumpLogsByQueueID(self, queueid):
+		"""
+		The purpose of this method is to dump all log lines describing a
+		single Queue ID.
+		"""
+
+		if self.mailMessagesByQueueID.has_key(queueid):
+			msg = self.mailMessagesByQueueID[queueid]
+			print "[MESSAGEID {}] {} from={} -> {}".format(msg.getMessageID(), msg.getMailFrom(), msg.message["instances"].keys())
+
+		else:
+			for msgid,msgs in self.messagesByMessageID.items():
+
+				for msg in msgs:
+
+					if msg.getQueueID() != queueid:
+						continue
+
+					print "[MESSAGEID {}][QUEUEID {}] from={} -> {}".format(msg.getMessageID(), msg.getQueueID(), msg.getMailFrom(), msg.message["instances"].keys())
+					return
+
+	def dumpMessagesByMessageID(self):
 
 		for msgid,msg in self.messagesByMessageID.items():
-			print msg[0].message["queueid"], "from=", msg[0].message["mail_from"], "->", msg[0].message["instances"].keys()
+			print "[MESSAGEID {}] from={} -> {}]".format(msgid, msg[0].getMailFrom(), msg[0].message["instances"].keys())
 
 def main(filename):
 	mailLog = ZimbraMailLog()
 
 	if filename.endswith(".xz"):
 		mailLog.parseLog(lzma.LZMAFile(filename))
+	elif filename.endswith(".gz"):
+		mailLog.parseLog(gzip.open(filename))
 	else:
 		mailLog.parseLog(open(filename))
 
 	print "Consolidating messages...",
 	mailLog.consolidateMessagesByMessageID()
 	print ", done."
-	mailLog.dumpMessages()
+
+	mailLog.dumpLogsByQueueID("40E60321BA3")
+	#mailLog.dumpMessagesByMessageID()
 
 if __name__ == '__main__':
 	main(sys.argv[1])

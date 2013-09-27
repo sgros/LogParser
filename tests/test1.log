@@ -1,0 +1,5 @@
+Sep 22 03:59:16 mail postfix/amavisd/smtpd[4420]: 40E60321BA3: client=localhost[127.0.0.1]
+Sep 22 03:59:16 mail postfix/cleanup[11694]: 40E60321BA3: message-id=<823AF$20130922$03572400@SAS>
+Sep 22 03:59:16 mail postfix/qmgr[30484]: 40E60321BA3: from=<fax@example.hr>, size=3242, nrcpt=1 (queue active)
+Sep 22 03:59:16 mail postfix/lmtp[12550]: 40E60321BA3: to=<nsurname@example.hr>, relay=mail.example.hr[192.168.3.20]:7025, delay=0.06, delays=0/0/0/0.05, dsn=2.1.5, status=sent (250 2.1.5 Delivery OK)
+Sep 22 03:59:16 mail postfix/qmgr[30484]: 40E60321BA3: removed
