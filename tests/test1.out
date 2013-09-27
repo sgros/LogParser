@@ -16,7 +16,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 #
 # Note the output, it says that there was a message with a given message ID and
-# requested Queue DI. This message was sent from fax@example.hr and it wad
+# requested Queue ID. This message was sent from fax@example.hr and it was
 # delivered directly to 'nsurname@example.hr'.
 #
 # The None value of the pair is used when there was some kind of a forwarding.

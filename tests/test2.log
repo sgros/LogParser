@@ -1,0 +1,9 @@
+Sep 22 03:49:00 mail postfix/smtpd[16388]: connect from guppy.example-domain.com[10.0.0.140]
+Sep 22 03:49:00 mail postfix/smtpd[16388]: NOQUEUE: filter: RCPT from guppy.example-domain.com[10.0.0.140]: <user@example.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<user@example.com> to=<MAILER-DAEMON@mail.example.com> proto=SMTP helo=<example.com>
+Sep 22 03:49:00 mail postfix/smtpd[16388]: 46641321B67: client=guppy.example-domain.com[10.0.0.140]
+Sep 22 03:49:00 mail postfix/cleanup[6704]: 46641321B67: message-id=<AC40A$20130922$03470900@SAS>
+Sep 22 03:49:00 mail postfix/qmgr[30484]: 46641321B67: from=<user@example.com>, size=744, nrcpt=2 (queue active)
+Sep 22 03:49:00 mail postfix/smtpd[16388]: disconnect from guppy.example-domain.com[10.0.0.140]
+Sep 22 03:49:00 mail postfix/smtp[6705]: 46641321B67: to=<mailarchive@[172.16.10.20]>, relay=127.0.0.1[127.0.0.1]:10026, delay=0.17, delays=0.01/0/0/0.16, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10030): 250 2.0.0 Ok: queued as 5E1AC321B6A)
+Sep 22 03:49:00 mail postfix/smtp[6705]: 46641321B67: to=<MAILER-DAEMON@mail.example.com>, relay=127.0.0.1[127.0.0.1]:10026, delay=0.17, delays=0.01/0/0/0.16, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10030): 250 2.0.0 Ok: queued as 5E1AC321B6A)
+Sep 22 03:49:00 mail postfix/qmgr[30484]: 46641321B67: removed
