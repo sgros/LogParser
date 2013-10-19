@@ -1,0 +1,24 @@
+Sep 23 19:05:10 mail postfix/smtpd[9794]: connect from oproxy1-pub.mail.unifiedlayer.com[6.47.49.53]
+Sep 23 19:05:11 mail postfix/smtpd[9794]: NOQUEUE: filter: RCPT from oproxy1-pub.mail.unifiedlayer.com[6.47.49.53]: <company@company.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<company@company.com> to=<nsurname@example.com> proto=SMTP helo=<oproxy1-pub.mail.unifiedlayer.com>
+Sep 23 19:05:11 mail postfix/smtpd[9794]: NOQUEUE: filter: RCPT from oproxy1-pub.mail.unifiedlayer.com[6.47.49.53]: <company@company.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10024; from=<company@company.com> to=<nsurname@example.com> proto=SMTP helo=<oproxy1-pub.mail.unifiedlayer.com>
+Sep 23 19:05:11 mail postfix/smtpd[9794]: 84B5C321AC9: client=oproxy1-pub.mail.unifiedlayer.com[6.47.49.53]
+Sep 23 19:05:12 mail postfix/cleanup[12016]: 84B5C321AC9: message-id=<BA506A9B87634B39BD855B1CDF070E07@hp6735s>
+Sep 23 19:05:13 mail postfix/qmgr[30484]: 84B5C321AC9: from=<company@company.com>, size=43129, nrcpt=2 (queue active)
+Sep 23 19:05:13 mail postfix/smtpd[9794]: disconnect from oproxy1-pub.mail.unifiedlayer.com[6.47.49.53]
+Sep 23 19:05:15 mail postfix/amavisd/smtpd[22532]: connect from localhost[127.0.0.1]
+Sep 23 19:05:15 mail postfix/amavisd/smtpd[22532]: AC0A1321BB3: client=localhost[127.0.0.1]
+Sep 23 19:05:15 mail postfix/cleanup[1846]: AC0A1321BB3: message-id=<BA506A9B87634B39BD855B1CDF070E07@hp6735s>
+Sep 23 19:05:15 mail postfix/qmgr[30484]: AC0A1321BB3: from=<company@company.com>, size=43494, nrcpt=1 (queue active)
+Sep 23 19:05:15 mail postfix/amavisd/smtpd[22532]: disconnect from localhost[127.0.0.1]
+Sep 23 19:05:15 mail postfix/amavisd/smtpd[23870]: connect from localhost[127.0.0.1]
+Sep 23 19:05:15 mail postfix/amavisd/smtpd[23870]: AF235321BB4: client=localhost[127.0.0.1]
+Sep 23 19:05:15 mail postfix/cleanup[12016]: AF235321BB4: message-id=<BA506A9B87634B39BD855B1CDF070E07@hp6735s>
+Sep 23 19:05:15 mail postfix/amavisd/smtpd[23870]: disconnect from localhost[127.0.0.1]
+Sep 23 19:05:15 mail postfix/qmgr[30484]: AF235321BB4: from=<company@company.com>, size=43928, nrcpt=1 (queue active)
+Sep 23 19:05:15 mail postfix/smtp[7789]: 84B5C321AC9: to=<mailarchive@[172.16.10.20]>, relay=127.0.0.1[127.0.0.1]:10024, delay=4.5, delays=2.1/0/0/2.4, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as AC0A1321BB3)
+Sep 23 19:05:15 mail postfix/smtp[7789]: 84B5C321AC9: to=<nsurname@example.com>, relay=127.0.0.1[127.0.0.1]:10024, delay=4.5, delays=2.1/0/0/2.4, dsn=2.0.0, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok: queued as AC0A1321BB3)
+Sep 23 19:05:15 mail postfix/qmgr[30484]: 84B5C321AC9: removed
+Sep 23 19:05:15 mail postfix/smtp[10154]: AC0A1321BB3: to=<mailarchive@[172.16.10.20]>, relay=172.16.10.20[172.16.10.20]:25, delay=0.06, delays=0/0/0.01/0.05, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as B7B87A44)
+Sep 23 19:05:15 mail postfix/qmgr[30484]: AC0A1321BB3: removed
+Sep 23 19:05:15 mail postfix/lmtp[32171]: AF235321BB4: to=<nsurname@com.com>, relay=mail.com.com[10.0.0.10]:7025, delay=0.06, delays=0.01/0/0/0.06, dsn=2.1.5, status=sent (250 2.1.5 Delivery OK)
+Sep 23 19:05:15 mail postfix/qmgr[30484]: AF235321BB4: removed

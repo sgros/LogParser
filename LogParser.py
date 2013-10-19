@@ -3,8 +3,6 @@
 import sys
 import re
 from datetime import datetime, date
-import lzma
-import gzip
 
 ################################################################################
 # Common regular expressions
@@ -92,13 +90,7 @@ spam_id_re="id=([0-9-]+)"
 
 zimbra8 = [
 
-	# Aug 25 18:28:01 mail postfix/smtpd[25292]: D3B73321AC7: client=93-136-95-83.adsl.net.t-com.hr[93.136.95.83], sasl_method=PLAIN, sasl_username=username
-	# Aug 26 10:47:18 mail postfix/smtpd[19002]: B48D5321AC7: client=93-136-195-117.adsl.net.t-com.hr[93.136.195.117], sasl_method=LOGIN, sasl_username=username
-	{"name": "smtpd_sasl_login",
-		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": " + queueid_re + ": client=" + fqdn_or_unknown_and_ipv4_re + ", sasl_method=(PLAIN|LOGIN), sasl_username=([a-z0-9A-Z.]+)",
-		"fields": ("all", "timestamp", "hostname", "PID", "queueid", "", "clienthostname", "", "clienthostip", "", "sasl_method", "username"),
-		"smid": "queueid",
-		"print": False},
+	## ERRORS
 
 	# Aug 27 12:20:01 mail postfix/smtpd[28312]: warning: SASL authentication failure: Password verification failed
         {"name": "smtpd_sasl_login_failure",
@@ -111,13 +103,6 @@ zimbra8 = [
         {"name": "smtpd_sasl_password_failure",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": " + "warning: SASL authentication failure: Password verification failed$",
 		"fields": ("all", "timestamp", "hostname", "PID"),
-		"smid": "PID",
-                "print": False},
-
-	# Aug 25 03:45:46 mail postfix/smtpd[24044]: Anonymous TLS connection established from mail-ob0-f182.google.com[209.85.214.182]: TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits)
-	{"name": "smtpd_tls_established",
-		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": Anonymous TLS connection established from " + fqdn_or_unknown_and_ipv4_re + ": (.*)$",
-		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", "", "tlscipher"),
 		"smid": "PID",
                 "print": False},
 
@@ -142,14 +127,21 @@ zimbra8 = [
 		"smid": "PID",
 		"print": False},
 
-	# Aug 25 03:37:58 mail postfix/smtpd[24044]: connect from guppy.example-domain.com[197.100.0.140]
+	# Aug 25 03:45:46 mail postfix/smtpd[24044]: Anonymous TLS connection established from mail-ob0-f182.google.com[209.85.214.182]: TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits)
+	{"name": "smtpd_tls_established",
+		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": Anonymous TLS connection established from " + fqdn_or_unknown_and_ipv4_re + ": (.*)$",
+		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", "", "tlscipher"),
+		"smid": "PID",
+                "print": False},
+
+	# Aug 25 03:37:58 mail postfix/smtpd[24044]: connect from guppy.example-domain.com[1.1.1.4]
 	{ "name": "smtpd_client_connect",
 		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": connect from " + fqdn_or_unknown_and_ipv4_re + "$",
 		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", ""),
 		"smid": "POSTFIX",
 		"print": False},
 
-	# Aug 25 03:37:58 mail postfix/smtpd[24044]: NOQUEUE: filter: RCPT from guppy.example-domain.com[197.100.0.140]: <machine@example.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<machine@example.com> to=<MAILER-DAEMON@mail.example.com> proto=SMTP helo=<example.com>
+	# Aug 25 03:37:58 mail postfix/smtpd[24044]: NOQUEUE: filter: RCPT from guppy.example-domain.com[1.1.1.1]: <machine@example.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<machine@example.com> to=<MAILER-DAEMON@mail.example.com> proto=SMTP helo=<example.com>
 	# Sep 20 11:24:23 mail postfix/smtpd[30733]: NOQUEUE: filter: VRFY from openemailsurvey.org[178.217.134.26]: <>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<> to=<test@example.com> proto=ESMTP helo=<openemailsurvey.org>
 	{ "name": "smtpd_amavis_10026",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": NOQUEUE: filter: (RCPT|VRFY) from " + fqdn_or_unknown_and_ipv4_re + ": " + mail_re + ": Sender address triggers FILTER smtp-amavis:\[127.0.0.1\]:10026; from=" + mail_re + " to=" + mail_re + " proto=E?SMTP helo=" + helo_re + "$",
@@ -157,7 +149,7 @@ zimbra8 = [
 		"smid": "POSTFIX",
 		"print": False},
 
-	# Aug 25 04:03:14 mail postfix/smtpd[24890]: 1B41C321AC7: filter: RCPT from unknown[197.100.1.49]: <arpwatch@monitor1.example-domain.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<arpwatch@monitor1.example-domain.com> to=<nsurname@example.com> proto=ESMTP helo=<monitor1.example-domain.com>
+	# Aug 25 04:03:14 mail postfix/smtpd[24890]: 1B41C321AC7: filter: RCPT from unknown[1.1.1.49]: <arpwatch@monitor1.example-domain.com>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10026; from=<arpwatch@monitor1.example-domain.com> to=<nsurname@example.com> proto=ESMTP helo=<monitor1.example-domain.com>
 	{ "name": "smtpd_amavis_10026_queueid",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": " + queueid_re + ": filter: RCPT from " + fqdn_or_unknown_and_ipv4_re + ": " + mail_re + ": Sender address triggers FILTER smtp-amavis:\[127.0.0.1\]:10026; from=" + mail_re + " to=" + mail_re + " proto=E?SMTP helo=" + helo_re + "$",
 		"fields": ("all", "timestamp", "hostname", "PID", "queueid", "", "clienthostname", "", "clienthostip", "", "from", "", "to", "heloid"),
@@ -169,7 +161,7 @@ zimbra8 = [
 	{ "name": "smtpd_amavis_10024",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": NOQUEUE: filter: (RCPT|VRFY) from " + fqdn_or_unknown_and_ipv4_re + ": " + mail_re + ": Sender address triggers FILTER smtp-amavis:\[127.0.0.1\]:10024; from=" + mail_re + " to=" + mail_re + " proto=E?SMTP helo=" + helo_re + "$",
 		"fields": ("all", "timestamp", "hostname", "PID", "smtpcommand", "", "clienthostname", "", "clienthostip", "", "", "from", "to", "heloid"),
-		"smid": "newmessage",
+		"smid": "POSTFIX",
 		"print": False},
 
 	# Aug 26 07:52:56 mail postfix/smtpd[28574]: 1E378321AC7: filter: RCPT from mxout3.iskon.hr[213.191.128.82]: <s-1@inet.hr>: Sender address triggers FILTER smtp-amavis:[127.0.0.1]:10024; from=<s-1@inet.hr> to=<name.surname@example.com> proto=ESMTP helo=<mxout3.iskon.hr>
@@ -179,14 +171,22 @@ zimbra8 = [
 		"smid": "queueid",
 		"print": False},
 
-	# Aug 25 03:37:58 mail postfix/smtpd[24044]: ACF22321AC7: client=guppy.example-domain.com[197.100.0.140]
+	# Aug 25 18:28:01 mail postfix/smtpd[25292]: D3B73321AC7: client=93-136-95-83.adsl.net.t-com.hr[93.136.95.83], sasl_method=PLAIN, sasl_username=username
+	# Aug 26 10:47:18 mail postfix/smtpd[19002]: B48D5321AC7: client=93-136-195-117.adsl.net.t-com.hr[93.136.195.117], sasl_method=LOGIN, sasl_username=username
+	{"name": "smtpd_sasl_login",
+		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": " + queueid_re + ": client=" + fqdn_or_unknown_and_ipv4_re + ", sasl_method=(PLAIN|LOGIN), sasl_username=([a-z0-9A-Z.]+)$",
+		"fields": ("all", "timestamp", "hostname", "PID", "queueid", "", "clienthostname", "", "clienthostip", "", "sasl_method", "username"),
+		"smid": "POSTFIX",
+		"print": False},
+
+	# Aug 25 03:37:58 mail postfix/smtpd[24044]: ACF22321AC7: client=guppy.example-domain.com[1.1.0.140]
 	{"name": "smtpd_queueid_identified",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": " + queueid_re + ": client=" + fqdn_or_unknown_and_ipv4_re + "$",
 		"fields": ("all", "timestamp", "hostname", "PID", "queueid", "", "clienthostname", "", "clienthostip", ""),
 		"smid": "POSTFIX",
 		"print": False},
 
-	# Aug 28 16:39:09 mail postfix/smtpd[26747]: warning: Illegal address syntax from unknown[197.100.2.123] in RCPT command: <inga@h.s.p.t.-com>
+	# Aug 28 16:39:09 mail postfix/smtpd[26747]: warning: Illegal address syntax from unknown[1.1.1.3] in RCPT command: <inga@h.s.p.t.-com>
 	# Sep 16 15:38:16 mail postfix/smtpd[22789]: warning: Illegal address syntax from dslb-188-105-211-160.pools.arcor-ip.net[188.105.211.160] in MAIL command: <Keller51f@Torbau_1711+.intern>
 	{"name": "smtpd_invalid_syntax",
 		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": warning: Illegal address syntax from " + fqdn_or_unknown_and_ipv4_re + " in (RCPT|MAIL) command: " + mail_re,
@@ -194,7 +194,7 @@ zimbra8 = [
 		"smid": "PID",
 		"print": False},
 
-	# Aug 29 15:16:20 mail postfix/smtpd[5414]: improper command pipelining after QUIT from guppy.example-domain.com[197.100.0.140]:
+	# Aug 29 15:16:20 mail postfix/smtpd[5414]: improper command pipelining after QUIT from guppy.example-domain.com[1.1.1.4]:
 	# Sep  9 00:40:15 mail postfix/smtpd[4349]: improper command pipelining after DATA from unknown[89.248.172.122]: Content-Type: text/html\r\nFrom: testing@testers.com\r\nTo: csclus.smtp@gmail.com\r\nSubject: virgin - 212
 	{"name": "smtpd_improper_pipelining",
 		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": improper command pipelining after (QUIT|DATA) from " + fqdn_or_unknown_and_ipv4_re + ":(.*)$",
@@ -206,7 +206,7 @@ zimbra8 = [
 	{"name": "smtpd_address_rejected",
 		"regex":  "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": NOQUEUE: reject: RCPT from " + fqdn_or_unknown_and_ipv4_re + ": 550 5.1.1 " + mail_re + ": Recipient address rejected: " + fqdn_re + "; " + from_mail_re + " " + to_mail_re + " proto=E?SMTP helo=" + helo_re,
 		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", "", "", "", "from", "to", "heloid"),
-		"smid": "PID",
+		"smid": "POSTFIX",
 		"print": False},
 
 	# Aug 25 18:03:59 mail postfix/smtpd[24548]: NOQUEUE: reject: RCPT from 1-164-95-121.dynamic.hinet.net[1.164.95.121]: 554 5.7.1 <smtp@k888.tw>: Relay access denied; from=<ffrqfa@hotmail.com> to=<smtp@k888.tw> proto=SMTP helo=<212.92.192.73>
@@ -214,7 +214,7 @@ zimbra8 = [
 	{"name": "smtpd_relay_denied",
 		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": NOQUEUE: reject: (VRFY|RCPT) from " + fqdn_or_unknown_and_ipv4_re + ": 554 5.7.1 " + mail_re + ": Relay access denied; " + from_mail_re + " " + to_mail_re + " proto=E?SMTP helo=" + helo_re,
 		"fields": ("all", "timestamp", "hostname", "PID", "smtpcommand", "", "clienthostname", "", "clienthostip", "", "", "from", "to", "heloid"),
-		"smid": "PID",
+		"smid": "POSTFIX",
 		"print": False},
 
 	# This one is strange, how is it possible to not have from field nor HELO id?
@@ -228,7 +228,14 @@ zimbra8 = [
 	# Sep  9 09:17:29 mail postfix/smtpd[16004]: NOQUEUE: reject: RCPT from unknown[151.252.231.186]: 504 5.5.2 <u@paccpv>: Recipient address rejected: need fully-qualified address; from=<nsurname@example.com> to=<u@paccpv> proto=ESMTP helo=<[192.168.1.5]>
 	{"name": "smtpd_address_rejected",
 		"regex":  "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": NOQUEUE: reject: RCPT from " + fqdn_or_unknown_and_ipv4_re + ": 504 5.5.2 " + mail_re + ": Recipient address rejected: need fully-qualified address; " + from_mail_re + " " + to_mail_re + " proto=E?SMTP helo=" + helo_re + "$",
-		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", "", "", "from", "to", "helo"),
+		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", "", "", "from", "to", "heloid"),
+		"smid": "PID",
+		"print": False},
+
+	# Sep 29 21:54:17 mail postfix/smtpd[5264]: NOQUEUE: reject: RCPT from unknown[58.250.116.82]: 503 5.5.0 <unknown[58.250.116.82]>: Client host rejected: Improper use of SMTP command pipelining; from=<wowmk@domain.com> to=<001-home@163.com> proto=ESMTP helo=<x6x8-20101028KO>
+	{"name": "smtpd_client_rejected",
+		"regex":  "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": NOQUEUE: reject: RCPT from " + fqdn_or_unknown_and_ipv4_re + ": 503 5.5.0 " + mail_re + ": Client host rejected: Improper use of SMTP command pipelining; " + from_mail_re + " " + to_mail_re + " proto=E?SMTP helo=" + helo_re + "$",
+		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", "", "", "from", "to", "heloid"),
 		"smid": "PID",
 		"print": False},
 
@@ -253,6 +260,20 @@ zimbra8 = [
 		"smid": "PID",
 		"print": False},
 
+	# Oct 14 14:39:22 mail postfix/smtp[4135]: warning: valid_hostname: empty hostname
+	{"name": "empty_hostname",
+		"regex": "^" + date_re + " " + hostname_re + " postfix/smtp" + pid_re + ": warning: valid_hostname: empty hostname$",
+		"fields": ("all", "timestamp", "hostname", "PID"),
+		"smid": "PID",
+		"print": False},
+
+	# Oct 14 14:39:22 mail postfix/smtp[4135]: warning: malformed domain name in resource data of MX record for yahho.com:
+	{"name": "malformed_mx_record",
+		"regex": "^" + date_re + " " + hostname_re + " postfix/smtp" + pid_re + ": warning: malformed domain name in resource data of MX record for yahho.com: $",
+		"fields": ("all", "timestamp", "hostname", "PID"),
+		"smid": "PID",
+		"print": False},
+
 	# Sep 18 01:32:19 mail postfix/smtpd[1087]: warning: numeric hostname: 190.208.191.182
 	{"name": "numeric_hostname_warning",
 		"regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": warning: numeric hostname: " + ipv4_re + "$",
@@ -262,7 +283,7 @@ zimbra8 = [
 
 	# Aug 25 03:37:58 mail postfix/cleanup[6880]: ACF22321AC7: message-id=<AC40A$20130825$03360900@SAS>
 	{"name": "messageid_identified",
-                "regex": "^" + date_re + " " + hostname_re + " postfix/cleanup" + pid_re + ": " + queueid_re + ": (resent-)?message-id=([^ ]+) ?\n",
+                "regex": "^" + date_re + " " + hostname_re + " postfix/cleanup" + pid_re + ": " + queueid_re + ": (resent-)?message-id=(.+) ?\n",
 		"fields": ("all", "timestamp", "hostname", "PID", "queueid", "", "messageid"),
 		"smid": "queueid",
 		"print": False},
@@ -274,7 +295,7 @@ zimbra8 = [
 		"smid": "queueid",
 		"print": False},
 
-	# Aug 25 03:37:58 mail postfix/smtpd[24044]: disconnect from guppy.example-domain.com[197.100.0.140]
+	# Aug 25 03:37:58 mail postfix/smtpd[24044]: disconnect from guppy.example-domain.com[1.1.1.4]
 	{"name": "smtpd_client_disconnect",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": disconnect from " + fqdn_or_unknown_and_ipv4_re + "$",
 		"fields": ("all", "timestamp", "hostname", "PID", "", "clienthostname", "", "clienthostip", ""),
@@ -515,8 +536,8 @@ zimbra8 = [
 	# Sep 25 11:26:30 mail postfix/smtpd[17289]: too many errors after DATA from unknown[14.222.46.38]
 	{"name": "smtpd_connection_error",
                 "regex": "^" + date_re + " " + hostname_re + " postfix/smtpd" + pid_re + ": (too many errors|lost connection|timeout)" + " after (NOOP|END-OF-MESSAGE|UNKNOWN|MAIL|EHLO|STARTTLS|RSET|CONNECT|AUTH|HELO|RCPT|DATA|DATA \([0-9]+ bytes\)) from " + fqdn_or_unknown_and_ipv4_re,
-		"fields": ("all", "timestamp", "hostname", "PID", "error", "state", "", "remotehostname", "", "remotehostip", ""),
-		"smid": "PID",
+		"fields": ("all", "timestamp", "hostname", "PID", "error", "state", "", "clienthostname", "", "clienthostip", ""),
+		"smid": "POSTFIX",
                 "print": False},
 
 	# Aug 25 03:56:20 mail postfix/amavisd/smtpd[16299]: timeout after END-OF-MESSAGE from localhost[127.0.0.1]
@@ -538,6 +559,26 @@ zimbra8 = [
 		"regex": "^" + date_re + " " + hostname_re + " postfix/smtp" + pid_re + ": " + queueid_re + ": enabling PIX workarounds: disable_esmtp delay_dotcrlf for " + fqdn_or_unknown_and_ipv4_and_port_re + "$",
 		"fields": ("all", "timestamp", "hostname", "PID", "queueid", "", "", "clienthostname", "", "clienthostip", "", "clientport"),
 		"smid": "queueid",
+		"print": False},
+
+	########################################################################
+	#
+	# INTERNAL POSTFIX ERRORS
+	#
+	########################################################################
+
+	# Oct  1 09:09:11 mail spawn[11790]: fatal: spawn_comand: execvp /opt/zimbra/postfix-journal/bin/postjournal: No such file or directory
+	{"name": "spawn_error",
+		"regex": "^" + date_re + " " + hostname_re + " spawn" + pid_re + ": fatal: spawn_comand: execvp /opt/zimbra/postfix-journal/bin/postjournal: No such file or directory$",
+		"fields": ("all", "timestamp", "hostname", "PID"),
+		"smid": "PID",
+		"print": False},
+
+	# Oct  1 09:09:12 mail postfix/spawn[11789]: warning: command /opt/zimbra/postfix-journal/bin/postjournal exit status 1
+	{"name": "spawn_error",
+		"regex": "^" + date_re + " " + hostname_re + " postfix/spawn" + pid_re + ": warning: command /opt/zimbra/postfix-journal/bin/postjournal exit status 1$",
+		"fields": ("all", "timestamp", "hostname", "PID"),
+		"smid": "PID",
 		"print": False},
 
 ]
@@ -566,9 +607,10 @@ AMAVISD		= "AMAVISD"
 INTERNAL	= "INTERNAL"
 LOCAL		= "LOCAL"
 
-CMD_ADDMSG	= "CMD_ADDMSG"
-CMD_DELPID	= "CMD_DELPID"
-CMD_MESSAGEDONE	= "CMD_MESSAGEDONE"
+CMD_MSGADD	= "CMD_MSGADD"
+CMD_MSGERR	= "CMD_MSGERR"
+CMD_PIDDEL	= "CMD_PIDDEL"
+CMD_MSGDONE	= "CMD_MSGDONE"
 
 class MailMessageInstance:
 	"""
@@ -589,14 +631,14 @@ class MailMessageInstance:
 	# Internal methods
 
 	def _set_newqueueid(self, logRecord):
-		if self.newqueueid != None:
+		if self.newqueueid != None and self.newqueueid != logRecord["newqueueid"]:
 			raise UnexpectedEventLogParserException("state: {}, newqueueid already defined: {}, input: {}".format(self.state, self.newqueueid, logRecord["all"]))
 
 		self.newqueueid = logRecord["newqueueid"]
 
 	def _set_relay(self, logRecord):
 
-		if self.relayhostname != None or self.relayhostip != None or self.relayport != None:
+		if (self.relayhostname != None and self.relayhostname != logRecord["relayhostname"]) or (self.relayhostip != None and self.relayhostip != logRecord["relayhostip"]) or (self.relayport != None and self.relayport != logRecord["relayport"]):
 			raise UnexpectedEventLogParserException("state: {}, newqueueid already defined: {}, input: {}".format(self.state, self.newqueueid, logRecord["all"]))
 
 		self.relayhostname = logRecord["relayhostname"]
@@ -604,6 +646,9 @@ class MailMessageInstance:
 		self.relayport = logRecord["relayport"]
 
 	# Public methods
+
+	def getNewQueueID(self):
+		return self.newqueueid
 
 	def __init__(self, rcpt_to):
 		self.rcpt_to = rcpt_to
@@ -616,7 +661,10 @@ class MailMessageInstance:
 	def __str__(self):
 		return "STATE: {}, TO: {}".format(self.state, self.rcpt_to)
 
-	def process(self, logRecord):
+	def process(self, logRecord, traceQueueIDSet = set({})):
+
+		if logRecord.has_key("queueid") and logRecord["queueid"] in traceQueueIDSet:
+			print "state={} input={}".format(self.state, logRecord["all"])
 
 		if self.state == self.INIT:
 
@@ -624,6 +672,8 @@ class MailMessageInstance:
 				self._set_newqueueid(logRecord)
 				self._set_relay(logRecord)
 				self.state = self.MESSAGE_QUEUED
+
+#				print "1: message_queued", logRecord["queueid"], logRecord["newqueueid"]
 
 			elif logRecord["regex"]["name"] == "message_queued_all":
 				self._set_relay(logRecord)
@@ -650,7 +700,7 @@ class MailMessageInstance:
 
 		elif self.state == self.MESSAGE_QUEUED:
 
-			if logRecord["regex"]["name"] in ("message_queued", "message_queued_all"):
+			if logRecord["regex"]["name"] == "message_queued":
 				# It can happen that the same message is queued more than once. This hapens due
 				# to redirections, mailing list, etc. In that case it isn't possible to
 				# differentiate specific messages as they all have the same log entry.
@@ -658,7 +708,13 @@ class MailMessageInstance:
 				#
 				# The better solution would be to check if they are really the same, and
 				# raise and exception if they are not!
-				pass
+				self._set_newqueueid(logRecord)
+				self._set_relay(logRecord)
+
+#				print "2: message_queued", logRecord["queueid"], logRecord["newqueueid"]
+
+			elif logRecord["regex"]["name"] == "message_queued_all":
+				self._set_relay(logRecord)
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -676,8 +732,16 @@ class MailMessageInstance:
 				self.relayhostip = logRecord["relayport"]
 				self.state = self.MESSAGE_QUEUED
 
+#				print "3: message_queued", logRecord["queueid"], logRecord["newqueueid"]
+
 			elif logRecord["regex"]["name"] == "smtpd_amavis_10024_queueid":
 				self.state = self.AMAVIS_10024
+
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				self.state = self.AMAVIS_10024
+
+			elif logRecord["regex"]["name"] == "smtpd_address_rejected_queueid":
+				self.state = self.MESSAGE_REJECTED
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -687,12 +751,17 @@ class MailMessageInstance:
 			if logRecord["regex"]["name"] == "smtpd_address_rejected_queueid":
 				self.state = self.MESSAGE_REJECTED
 
+			elif logRecord["regex"]["name"] == "message_spam_discarded":
+				self.state = self.MESSAGE_REJECTED
+
 			elif logRecord["regex"]["name"] == "message_queued":
 				self._set_newqueueid(logRecord)
 				self.relayhostname = logRecord["relayhostname"]
 				self.relayhostip = logRecord["relayhostip"]
 				self.relayhostip = logRecord["relayport"]
 				self.state = self.MESSAGE_QUEUED
+
+#				print "4: message_queued", logRecord["queueid"], logRecord["newqueueid"]
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -715,11 +784,13 @@ class MailMessageInstance:
 				self.relayhostip = logRecord["relayport"]
 				self.state = self.MESSAGE_QUEUED
 
-			elif logRecord["regex"]["name"] in ("message_deferred", "message_deferred_error"):
+#				print "5: message_queued", logRecord["queueid"], logRecord["newqueueid"]
+
+			elif logRecord["regex"]["name"] in ("message_deferred", "message_deferred_error", "message_deferred_smtp"):
 				pass
 
-			elif logRecord["regex"]["name"] == "message_deferred_smtp":
-				pass
+			elif logRecord["regex"]["name"] == "message_bounced_smtp":
+				self.state = self.MESSAGE_BOUNCED
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -755,6 +826,8 @@ class MailMessage:
 	QUEUEID_IDENTIFIED	= "QUEUEID_IDENTIFIED"
 	MESSAGEID_IDENTIFIED	= "MESSAGEID_IDENTIFIED"
 	MSG_SUCCESS		= "MSG_SUCCESS"
+	MSG_EXPIRED		= "MSG_EXPIRED"
+	MSG_ERROR		= "MSG_ERROR"
 	MILTERREJECT		= "MILTERREJECT"
 
 	def __init__(self, source=None, queueid=None, from_to=[],
@@ -795,6 +868,21 @@ class MailMessage:
 			return self.message["queueid"]
 
 		return ""
+
+	def getNewQueueIDs(self):
+
+		if self.message.has_key("dsn_queueids"):
+			newqueueids = set(self.message["dsn_queueids"])
+		else:
+			newqueueids = set([])
+
+		if self.message.has_key("newqueueid"):
+			newqueueids.add(self.message["newqueueid"])
+
+		for msginstance in self.message["instances"].values():
+			newqueueids.add(msginstance.getNewQueueID())
+
+		return newqueueids
 
 	def getMailFrom(self):
 		if self.message.has_key("mail_from"):
@@ -871,6 +959,9 @@ class MailMessage:
 					self.message["instances"][rcpt_to] = MailMessageInstance(rcpt_to)
 				self.message["instances"][rcpt_to].process(logRecord)
 
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				self.state = self.MSG_ERROR
+
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
 
@@ -929,34 +1020,29 @@ class MailMessage:
 
 			elif logRecord["regex"]["name"] == "message_removed":
 
-				self.state = self.MSG_SUCCESS
-				return CMD_MESSAGEDONE, None
+				return CMD_MSGDONE, None
 
 			elif logRecord["regex"]["name"] == "cleanup_milter_reject":
 
 				self.state = self.MILTERREJECT
-				return CMD_MESSAGEDONE, None
+				return CMD_MSGDONE, None
 
 			elif logRecord["regex"]["name"] == "message_expired":
 
 				if logRecord.has_key("orig_to"):
 					raise
 
-				# TODO: Record QueueID from the generated message!
+				self.state = self.MSG_EXPIRED
 
-			elif logRecord["regex"]["name"] == "delivery_status_error":
-
-				if logRecord.has_key("orig_to"):
-					raise
-
-				# TODO: Record QueueID from the generated message!
-
-			elif logRecord["regex"]["name"] == "delivery_status_success":
+			elif logRecord["regex"]["name"] in ("delivery_status_error", "delivery_status_success"):
 
 				if logRecord.has_key("orig_to"):
 					raise
 
-				# TODO: Record QueueID from the generated message!
+				if not self.message.has_key("dsn_queueids"):
+					self.message["dsn_queueids"] = []
+
+				self.message["dsn_queueids"].append(logRecord["newqueueid"])
 
 			elif logRecord["regex"]["name"] == "smtp_unavailable":
 				# We don't react to this message since next line will give details about the error message
@@ -970,6 +1056,9 @@ class MailMessage:
 
 			elif logRecord["regex"]["name"] == "smtp_pix_workarounds":
 				pass
+
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				self.state = self.MSG_ERROR
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -989,10 +1078,12 @@ class PostfixProcess():
 	were holding connection open.
 	"""
 
-	INIT		= "INIT"
-	CONNECTED	= "CONNECTED"
-	AMAVIS_10026	= "AMAVIS_10026"
-	MSGDONE		= "MSGDONE"
+	INIT			= "INIT"
+	CONNECTED		= "CONNECTED"
+	AMAVIS_10026		= "AMAVIS_10026"
+	AMAVIS_10024		= "AMAVIS_10024"
+	CONNECTION_ERROR	= "CONNECTION_ERROR"
+	MSGDONE			= "MSGDONE"
 
 	def __init__(self, pid):
 		self.reset(pid)
@@ -1001,6 +1092,8 @@ class PostfixProcess():
 		self.pid = pid
 		self.state = self.INIT
 		self.from_to = []
+		self.rejected_addresses = []
+		self.relay_denied = []
 
 	def __str__(self):
 		return "[POSTFIX {}] STATE: {}, FROMTO: {}".format(self.pid, self.state, self.from_to)
@@ -1026,17 +1119,13 @@ class PostfixProcess():
 				self.from_to.append((logRecord["from"], logRecord["to"]))
 				self.state = self.AMAVIS_10026
 
-#			elif logRecord["regex"]["name"] == "smtpd_queueid_identified":
-#				self.state = self.MSGDONE
-#				print "OUT>>> ", self
-#				return CMD_ADDMSG, MailMessage(source=SMTPD, queueid=logRecord["queueid"],
-#							clienthostname=self.clienthostname, clienthostip=self.clienthostip)
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				self.state = self.CONNECTION_ERROR
 
 			elif logRecord["regex"]["name"] == "smtpd_client_disconnect":
 				# When the client connects and immediatelly disconnects, then
 				# we handle that case with this IF statement.
-#				print "OUT>>> ", self
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1045,18 +1134,60 @@ class PostfixProcess():
 
 			if logRecord["regex"]["name"] == "smtpd_queueid_identified":
 				self.state = self.MSGDONE
-#				print "OUT>>> ", self
-				return CMD_ADDMSG, MailMessage(source=SMTPD, queueid=logRecord["queueid"],
-							from_to=self.from_to,
+				self.msg = MailMessage(source=SMTPD, queueid=logRecord["queueid"], from_to=self.from_to,
 							clienthostname=self.clienthostname, clienthostip=self.clienthostip)
+				return CMD_MSGADD, self.msg
+
+			elif logRecord["regex"]["name"] == "smtpd_sasl_login":
+				# TODO: This is internal message, but we don't note that anywhere!
+				self.state = self.MSGDONE
+				self.msg = MailMessage(source=SMTPD, queueid=logRecord["queueid"], from_to=self.from_to,
+							clienthostname=self.clienthostname, clienthostip=self.clienthostip)
+				return CMD_MSGADD, self.msg
+
+			elif logRecord["regex"]["name"] == "smtpd_amavis_10024":
+				self.from_to.append((logRecord["from"], logRecord["to"]))
+				self.state = self.AMAVIS_10024
 
 			elif logRecord["regex"]["name"] == "smtpd_amavis_10026":
-				self.from_to.append((logRecord["from"], logRecord["to"]))
+				self.from_to = [(logRecord["from"], logRecord["to"])]
 				self.state = self.AMAVIS_10026
 
+			elif logRecord["regex"]["name"] == "smtpd_address_rejected":
+				self.rejected_addresses.append((logRecord["from"], logRecord["to"]))
+
 			elif logRecord["regex"]["name"] == "smtpd_client_disconnect":
-#				print "OUT>>> ", self
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
+
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				self.state = self.CONNECTION_ERROR
+
+			else:
+				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
+
+		elif self.state == self.AMAVIS_10024:
+
+			if logRecord["regex"]["name"] == "smtpd_queueid_identified":
+				self.state = self.MSGDONE
+				self.msg = MailMessage(source=SMTPD, queueid=logRecord["queueid"], from_to=self.from_to,
+							clienthostname=self.clienthostname, clienthostip=self.clienthostip)
+				return CMD_MSGADD, self.msg
+
+			elif logRecord["regex"]["name"] == "smtpd_address_rejected":
+				self.rejected_addresses.append((logRecord["from"], logRecord["to"]))
+
+			elif logRecord["regex"]["name"] == "smtpd_relay_denied":
+				self.relay_denied.append((logRecord["from"], logRecord["to"]))
+
+			elif logRecord["regex"]["name"] == "smtpd_client_disconnect":
+				return CMD_PIDDEL, None
+
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				self.state = self.CONNECTION_ERROR
+
+			elif logRecord["regex"]["name"] == "smtpd_amavis_10026":
+				self.from_to = [(logRecord["from"], logRecord["to"])]
+				self.state = self.AMAVIS_10026
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1066,12 +1197,54 @@ class PostfixProcess():
 			self.reset(self.pid)
 
 			if logRecord["regex"]["name"] == "smtpd_client_disconnect":
-#				print "OUT>>> ", self
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
+
+			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+				if logRecord["clienthostname"] != self.clienthostname or logRecord["clienthostip"] != self.clienthostip:
+					raise UnexpectedEventLogParserException("connection error from {}[{}] but expected {}[{}]".format(logRecord["clienthostname"], logRecord["clienthostip"], self.clienthostname, self.clienthostip))
+
+				# We don't remove message if it is successfuly received, i.e. timeout happened
+				# _after_ message was successfuly received!
+				self.state = self.CONNECTION_ERROR
+
+				if logRecord["error"] != 'timeout' or logRecord["state"] != 'END-OF-MESSAGE':
+					return CMD_MSGERR, self.msg.getQueueID()
 
 			elif logRecord["regex"]["name"] == "smtpd_amavis_10026":
-				self.from_to.append((logRecord["from"], logRecord["to"]))
+				#
+				# Client doesn't disconnect, but tries again!
+				#
+				self.msg = None
+				self.from_to = [(logRecord["from"], logRecord["to"])]
 				self.state = self.AMAVIS_10026
+
+			else:
+				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
+
+#		elif self.state == self.ADDRESS_ERROR:
+#
+#			if logRecord["regex"]["name"] == "smtpd_client_disconnect":
+#				return CMD_PIDDEL, None
+#
+#			elif logRecord["regex"]["name"] == "smtpd_connection_error":
+#				self.state = self.CONNECTION_ERROR
+#
+#			elif logRecord["regex"]["name"] == "smtpd_amavis_10026":
+#				#
+#				# Client doesn't disconnect, but tries again!
+#				#
+#				# NOTE: Regular clients don't behave like this...
+#				#
+#				self.from_to = [(logRecord["from"], logRecord["to"])]
+#				self.state = self.AMAVIS_10026
+#
+#			else:
+#				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
+
+		elif self.state == self.CONNECTION_ERROR:
+
+			if logRecord["regex"]["name"] == "smtpd_client_disconnect":
+				return CMD_PIDDEL, None
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1107,7 +1280,7 @@ class DKIMMilterProcess():
 				self.state = self.CONNECTED
 
 			elif logRecord["regex"]["name"] == "dkimmilter_client_disconnect":
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1115,10 +1288,10 @@ class DKIMMilterProcess():
 		elif self.state == self.CONNECTED:
 
 			if logRecord["regex"]["name"] == "dkimmilter_queueid_identified":
-				return CMD_ADDMSG, MailMessage(source=DKIMMILTER, queueid=logRecord["queueid"])
+				return CMD_MSGADD, MailMessage(source=DKIMMILTER, queueid=logRecord["queueid"])
 
 			elif logRecord["regex"]["name"] == "dkimmilter_client_disconnect":
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1157,12 +1330,12 @@ class AmavisdProcess():
 				# Then, the process started, but it is not catched by the log
 				# we have on our disposal.
 				self.state = self.CONNECTED
-				return CMD_ADDMSG, MailMessage(source=AMAVISD, queueid=logRecord["queueid"])
+				return CMD_MSGADD, MailMessage(source=AMAVISD, queueid=logRecord["queueid"])
 
 			elif logRecord["regex"]["name"] == "amavisd_client_disconnect":
 				# This can happen due to the same reasons as for the previous
 				# IF statement. In this case, we only return delete command.
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1170,10 +1343,10 @@ class AmavisdProcess():
 		elif self.state == self.CONNECTED:
 
 			if logRecord["regex"]["name"] == "amavisd_queueid_identified":
-				return CMD_ADDMSG, MailMessage(source=AMAVISD, queueid=logRecord["queueid"])
+				return CMD_MSGADD, MailMessage(source=AMAVISD, queueid=logRecord["queueid"])
 
 			elif logRecord["regex"]["name"] == "amavisd_client_disconnect":
-				return CMD_DELPID, None
+				return CMD_PIDDEL, None
 
 			else:
 				raise UnexpectedEventLogParserException("state: {}, event: {}, input: {}".format(self.state, logRecord["regex"]["name"], logRecord["all"]))
@@ -1250,9 +1423,17 @@ class ZimbraMailLog():
 					self.stateProcessPID[pid] = PostfixProcess(pid)
 				cmd, arg = self.stateProcessPID[pid].process(parsed_message)
 
-				if cmd == CMD_ADDMSG:
+				if cmd == CMD_MSGADD:
 					self.mailMessagesByQueueID[parsed_message["queueid"]] = arg
-				elif cmd == CMD_DELPID:
+				elif cmd == CMD_MSGERR:
+					try:
+						self.mailMessagesByQueueID[arg].process(parsed_message)
+					except:
+						print parsed_message["all"]
+						sys.exit(1)
+					self.processedMessages.append(self.mailMessagesByQueueID[arg])
+					del self.mailMessagesByQueueID[arg]
+				elif cmd == CMD_PIDDEL:
 					del self.stateProcessPID[pid]
 				elif cmd is not None:
 					raise UnexpectedEventLogParserException("Unhandled command: {}".format(cmd))
@@ -1265,9 +1446,9 @@ class ZimbraMailLog():
 
 				cmd, arg = self.stateProcessPID[pid].process(parsed_message)
 
-				if cmd == CMD_ADDMSG:
+				if cmd == CMD_MSGADD:
 					self.mailMessagesByQueueID[parsed_message["queueid"]] = arg
-				elif cmd == CMD_DELPID:
+				elif cmd == CMD_PIDDEL:
 					del self.stateProcessPID[pid]
 				elif cmd is not None:
 					raise UnexpectedEventLogParserException("Unhandled command: {}".format(cmd))
@@ -1279,9 +1460,9 @@ class ZimbraMailLog():
 					self.stateProcessPID[pid] = AmavisdProcess(pid)
 				cmd, arg = self.stateProcessPID[pid].process(parsed_message)
 
-				if cmd == CMD_ADDMSG:
+				if cmd == CMD_MSGADD:
 					self.mailMessagesByQueueID[parsed_message["queueid"]] = arg
-				elif cmd == CMD_DELPID:
+				elif cmd == CMD_PIDDEL:
 					del self.stateProcessPID[pid]
 				elif cmd is not None:
 					raise UnexpectedEventLogParserException("Unhandled command: {}".format(cmd))
@@ -1325,12 +1506,27 @@ class ZimbraMailLog():
 
 				cmd, arg = self.mailMessagesByQueueID[queueid].process(parsed_message)
 
-				if cmd == CMD_MESSAGEDONE:
+				if cmd == CMD_MSGDONE:
 					self.processedMessages.append(self.mailMessagesByQueueID[queueid])
 					del self.mailMessagesByQueueID[queueid]
 
 				elif cmd is not None:
 					raise UnexpectedEventLogParserException("Unhandled command: {}".format(cmd))
+
+	def dumpProcessedMessages(self):
+
+		for msg in self.processedMessages:
+			print "[QUEUEID {}] messageid={} newqueueid={}".format(msg.getQueueID(), msg.getMessageID(), msg.getNewQueueIDs())
+
+	def dumpUnprocessedMessages(self):
+
+		for queueid, msg in self.mailMessagesByQueueID.items():
+			print "[QUEUEID {}] messageid={}".format(queueid, msg.getMessageID())
+
+	def dumpNewQueueIDs(self):
+
+		for msg in self.processedMessages:
+			print "[MESSAGEID {}] newqueueids={}".format(msg.getMessageID, msg.getNewQueueID())
 
 	def consolidateMessagesByMessageID(self):
 		"""
@@ -1349,7 +1545,48 @@ class ZimbraMailLog():
 
 			self.messagesByMessageID[msgid].append(msg)
 
-	def dumpLogsByQueueID(self, queueid):
+	def dumpMessagesByMessageID(self):
+
+		for msgid,msg in self.messagesByMessageID.items():
+			print "[MESSAGEID {}] from={} -> {}".format(msgid, msg[0].getMailFrom(), msg[0].message["instances"].keys())
+
+	def connectAutomaticallyGeneratedMessages(self):
+		"""
+		The purpose of this method is to find messages that were generated
+		as a reaction to some existing message (like, deliver status
+		notifications) and that don't have the same message id.
+		"""
+
+		if not hasattr(self, 'messagesByMessageID'):
+			self.consolidateMessagesByMessageID()
+
+		newQueueIDs = {}
+		for msgid,msgs in self.messagesByMessageID.items():
+			for msg in msgs:
+				newqueueid = msg.getNewQueueID()
+				if newqueueid != None:
+					newQueueIDs[msg.getQueueID()] = msgid
+
+		self.topMessageIds = {}
+		for msgid,msgs in self.messagesByMessageID.items():
+			for msg in msgs:
+				if msg.getQueueID() in newQueueIDs.keys():
+					mid = newQueueIDs[msg.getQueueID()]
+					if not self.topMessageIds.has_key(mid):
+						self.topMessageIds[mid] = []
+
+					self.topMessageIds[mid].append(msgs)
+
+					break
+			else:
+				self.topMessageIds[msgid] = [msgs]
+
+	def dumpNonAutomaticallyGeneratedMessages(self):
+
+		for msgid,msg in self.topMessageIds.items():
+			print "[MESSAGEID {}] from={} -> {}]".format(msgid, msg[0].getMailFrom(), msg[0].message["instances"].keys())
+
+	def dumpLogWithQueueID(self, queueid):
 		"""
 		The purpose of this method is to dump all log lines describing a
 		single Queue ID.
@@ -1370,27 +1607,43 @@ class ZimbraMailLog():
 					print "[MESSAGEID {}][QUEUEID {}] from={} -> {}".format(msg.getMessageID(), msg.getQueueID(), msg.getMailFrom(), msg.message["instances"].keys())
 					return
 
-	def dumpMessagesByMessageID(self):
+	def dumpAllQueueIDs(self):
 
-		for msgid,msg in self.messagesByMessageID.items():
-			print "[MESSAGEID {}] from={} -> {}]".format(msgid, msg[0].getMailFrom(), msg[0].message["instances"].keys())
+		for msgid,msgs in self.messagesByMessageID.items():
+			for msg in msgs:
+				print "[MESSAGEID {}][QUEUEID {}] from={} -> {}".format(msg.getMessageID(), msg.getQueueID(), msg.getMailFrom(), msg.message["instances"].keys())
 
 def main(filename):
 	mailLog = ZimbraMailLog()
 
 	if filename.endswith(".xz"):
+		import lzma
 		mailLog.parseLog(lzma.LZMAFile(filename))
 	elif filename.endswith(".gz"):
+		import gzip
 		mailLog.parseLog(gzip.open(filename))
 	else:
 		mailLog.parseLog(open(filename))
 
+#	print "Processed messages..."
+#	mailLog.dumpProcessedMessages()
+#	print "done."
+#	print
+
+#	print "Unprocessed messages..."
+#	mailLog.dumpUnprocessedMessages()
+#	print "done."
+#	print
+
 	print "Consolidating messages...",
 	mailLog.consolidateMessagesByMessageID()
 	print ", done."
+	mailLog.dumpMessagesByMessageID()
 
-	mailLog.dumpLogsByQueueID("40E60321BA3")
-	#mailLog.dumpMessagesByMessageID()
+	#mailLog.connectAutomaticallyGeneratedMessages()
+	#mailLog.dumpNonAutomaticallyGeneratedMessages()
+	#mailLog.dumpAllQueueIDs()
+	#mailLog.dumpLogWithQueueID("46641321B67")
 
 if __name__ == '__main__':
 	main(sys.argv[1])

@@ -1,0 +1,24 @@
+#
+# This is the output of parsing test3.log file
+#
+
+$ python
+Python 2.7.5 (default, Aug 22 2013, 09:31:58) 
+[GCC 4.8.1 20130603 (Red Hat 4.8.1-1)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import LogParser
+>>> mailLog = LogParser.ZimbraMailLog()
+>>> mailLog.parseLog(open('tests/test3.log'))
+>>> mailLog.consolidateMessagesByMessageID()
+>>> mailLog.dumpAllQueueIDs()
+[MESSAGEID <BA506A9B87634B39BD855B1CDF070E07@hp6735s>][QUEUEID 84B5C321AC9] from=company@company.com -> [('nsurname@example.com', None), ('mailarchive@[172.16.10.20]', None)]
+[MESSAGEID <BA506A9B87634B39BD855B1CDF070E07@hp6735s>][QUEUEID AC0A1321BB3] from=company@company.com -> [('mailarchive@[172.16.10.20]', None)]
+[MESSAGEID <BA506A9B87634B39BD855B1CDF070E07@hp6735s>][QUEUEID AF235321BB4] from=company@company.com -> [('nsurname@com.com', None)]
+>>>
+
+#
+# In this case we are requesting dump of all messages with assigned Queue IDs.
+# What we've got are three Queue IDs, but with indentical message ID, which is
+# expected as the test3.log file contains a trace of a single message going
+# through the Zimbra postfix subsystem.
+#
